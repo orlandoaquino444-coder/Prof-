@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProfeFácil - Plataforma para Profesores</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.6; }
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+.header { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.header h1 { font-size: 28px; margin-bottom: 5px; }
+.header p { opacity: 0.9; font-size: 14px; }
+.nav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.nav button { padding: 12px 20px; background: white; border: 2px solid #1b5e20; color: #1b5e20; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+.nav button:hover, .nav button.active { background: #1b5e20; color: white; }
+.card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+.card h2 { color: #1b5e20; margin-bottom: 15px; font-size: 22px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+.stat { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #1b5e20; }
+.stat .number { font-size: 32px; font-weight: bold; color: #1b5e20; }
+.stat .label { color: #666; font-size: 14px; margin-top: 5px; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #1b5e20; }
+.btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; font-size: 14px; margin: 5px; }
+.btn-primary { background: #1b5e20; color: white; }
+.btn-primary:hover { background: #2e7d32; }
+.btn-secondary { background: #e0e0e0; color: #333; }
+.btn-secondary:hover { background: #d0d0d0; }
+.btn-danger { background: #c62828; color: white; }
+.btn-danger:hover { background: #a31d1d; }
+.btn-success { background: #66bb6a; color: white; }
+.btn-success:hover { background: #4caf50; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+th { background: #f5f5f5; font-weight: 600; color: #1b5e20; }
+tr:hover { background: #f9f9f9; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-success { background: #e8f5e9; color: #1b5e20; }
+.badge-warning { background: #fff3e0; color: #ef6c00; }
+.badge-danger { background: #ffebee; color: #c62828; }
+.badge-info { background: #e3f2fd; color: #1565c0; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.active { display: flex; }
+.modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h2 { color: #1b5e20; }
+.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+.toast { position: fixed; top: 20px; right: 20px; background: #1b5e20; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 2000; animation: slideIn 0.3s; }
+@keyframes slideIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
+.empty { text-align: center; padding: 40px; color: #666; }
+.empty-icon { font-size: 48px; margin-bottom: 10px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+@media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .nav { flex-direction: column; } }
+.login-container { max-width: 400px; margin: 100px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.login-container h1 { text-align: center; color: #1b5e20; margin-bottom: 20px; }
+.status-bar { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
+.status-bar.success { background: #d4edda; border-color: #28a745; color: #155724; }
+.status-bar.error { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+</style>
+</head>
+<body>
+<div id="loginScreen" class="login-container">
+  <h1>📚 ProfeFácil</h1>
+  <div id="loginStatus"></div>
+  <form id="loginForm">
+    <div class="form-group">
+      <label>Correo electrónico</label>
+      <input type="email" id="loginEmail" required>
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="loginPassword" required minlength="6">
+    </div>
+    <button type="submit" class="btn btn-primary" style="width: 100%;">Iniciar sesión</button>
+    <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="showRegister()">Crear cuenta</button>
+    <button type="button" class="btn btn-success" style="width: 100%;" onclick="useDemoMode()">Usar modo demo</button>
+  </form>
+</div>
+
+<div id="mainApp" style="display: none;">
+  <div class="container">
+    <div class="header">
+      <h1>📚 ProfeFácil</h1>
+      <p id="userInfo">Plataforma para profesores</p>
+      <button class="btn btn-secondary" style="float: right; margin-top: -50px;" onclick="logout()">Cerrar sesión</button>
+    </div>
+    <div id="statusBar" class="status-bar"></div>
+    <div class="nav" id="nav">
+      <button onclick="showView('dashboard')" class="active">🏠 Panel</button>
+      <button onclick="showView('students')">👥 Estudiantes</button>
+      <button onclick="showView('courses')">📚 Cursos</button>
+      <button onclick="showView('tasks')">📝 Tareas</button>
+      <button onclick="showView('grades')">📊 Calificaciones</button>
+      <button onclick="showView('attendance')">✅ Asistencia</button>
+      <button onclick="showView('agenda')">📅 Agenda</button>
+      <button onclick="showView('planning')">️ Planificación</button>
+      <button onclick="showView('exams')">📋 Exámenes</button>
+      <button onclick="showView('library')">📖 Biblioteca</button>
+      <button onclick="showView('reports')">📈 Informes</button>
+      <button onclick="showView('backups')">💾 Copias</button>
+      <button onclick="showView('config')">⚙️ Configuración</button>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modalTitle">Título</h2>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// Configuración de Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBtnzA8Uf5iomh_r9LRuymIVs6zE7_DCqg",
+  authDomain: "profefacil-9318a.firebaseapp.com",
+  projectId: "profefacil-9318a",
+  storageBucket: "profefacil-9318a.firebasestorage.app",
+  messagingSenderId: "830708638867",
+  appId: "1:830708638867:web:9367c43be799372e185966",
+  measurementId: "G-19V3G8BTJQ"
+};
+
+// Variables globales
+let db = null;
+let auth = null;
+let currentUser = null;
+let useFirebase = false;
+let useDemo = false;
+
+// Sistema de base de datos con fallback
+const DB = {
+  // Modo Firebase
+  async fbGet(collection) {
+    if (!useFirebase || !db) return [];
+    try {
+      const snapshot = await db.collection(`users/${currentUser.uid}/${collection}`).get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error Firebase:', error);
+      showToast('Error al cargar datos de Firebase', 'error');
+      return [];
+    }
+  },
+  
+  async fbAdd(collection, data) {
+    if (!useFirebase || !db) throw new Error('Firebase no disponible');
+    const docRef = await db.collection(`users/${currentUser.uid}/${collection}`).add({
+      ...data,
+      createdAt: new Date().toISOString()
+    });
+    return docRef.id;
+  },
+  
+  async fbUpdate(collection, id, data) {
+    if (!useFirebase || !db) throw new Error('Firebase no disponible');
+    await db.collection(`users/${currentUser.uid}/${collection}`).doc(id).update({
+      ...data,
+      updatedAt: new Date().toISOString()
+    });
+  },
+  
+  async fbDelete(collection, id) {
+    if (!useFirebase || !db) throw new Error('Firebase no disponible');
+    await db.collection(`users/${currentUser.uid}/${collection}`).doc(id).delete();
+  },
+  
+  // Modo Local (fallback)
+  localGet(key) {
+    try {
+      return JSON.parse(localStorage.getItem(`pf_${currentUser?.uid || 'demo'}_${key}`)) || [];
+    } catch { return []; }
+  },
+  
+  localSet(key, data) {
+    localStorage.setItem(`pf_${currentUser?.uid || 'demo'}_${key}`, JSON.stringify(data));
+  },
+  
+  localAdd(key, item) {
+    const items = this.localGet(key);
+    item.id = Date.now().toString();
+    item.createdAt = new Date().toISOString();
+    items.push(item);
+    this.localSet(key, items);
+    return item.id;
+  },
+  
+  localUpdate(key, id, data) {
+    const items = this.localGet(key);
+    const index = items.findIndex(item => item.id === id);
+    if (index !== -1) {
+      items[index] = { ...items[index], ...data, updatedAt: new Date().toISOString() };
+      this.localSet(key, items);
+    }
+  },
+  
+  localDelete(key, id) {
+    const items = this.localGet(key).filter(item => item.id !== id);
+    this.localSet(key, items);
+  },
+  
+  // Métodos unificados
+  async get(collection) {
+    if (useFirebase) return await this.fbGet(collection);
+    return this.localGet(collection);
+  },
+  
+  async add(collection, data) {
+    if (useFirebase) return await this.fbAdd(collection, data);
+    return this.localAdd(collection, data);
+  },
+  
+  async update(collection, id, data) {
+    if (useFirebase) return await this.fbUpdate(collection, id, data);
+    return this.localUpdate(collection, id, data);
+  },
+  
+  async delete(collection, id) {
+    if (useFirebase) return await this.fbDelete(collection, id);
+    return this.localDelete(collection, id);
+  }
+};
+
+// Inicializar Firebase
+function initFirebase() {
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+    auth = firebase.auth();
+    useFirebase = true;
+    updateStatus('Conectado a Firebase', 'success');
+    return true;
+  } catch (error) {
+    console.error('Error inicializando Firebase:', error);
+    updateStatus('Firebase no disponible - Usando modo local', 'error');
+    useFirebase = false;
+    return false;
+  }
+}
+
+// Autenticación
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  
+  if (!useFirebase) {
+    updateStatus('Firebase no configurado. Usa modo demo.', 'error');
+    return;
+  }
+  
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    showToast('Sesión iniciada');
+  } catch (error) {
+    updateStatus('Error: ' + error.message, 'error');
+  }
+});
+
+auth?.onAuthStateChanged((user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('userInfo').textContent = `Bienvenido, ${user.email}`;
+    showView('dashboard');
+  } else if (!useDemo) {
+    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('mainApp').style.display = 'none';
+  }
+});
+
+function showRegister() {
+  const email = prompt('Correo electrónico:');
+  if (!email) return;
+  const password = prompt('Contraseña (mínimo 6 caracteres):');
+  if (!password || password.length < 6) {
+    updateStatus('La contraseña debe tener al menos 6 caracteres', 'error');
+    return;
+  }
+  
+  if (!useFirebase) {
+    updateStatus('Firebase no configurado. Usa modo demo.', 'error');
+    return;
+  }
+  
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(() => showToast('Cuenta creada'))
+    .catch(error => updateStatus('Error: ' + error.message, 'error'));
+}
+
+function useDemoMode() {
+  useDemo = true;
+  useFirebase = false;
+  currentUser = { uid: 'demo_user', email: 'demo@profefacil.com' };
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('userInfo').textContent = 'Modo Demo (datos locales)';
+  updateStatus('Modo demo activado - Los datos se guardan solo en este navegador', 'success');
+  showView('dashboard');
+}
+
+function logout() {
+  if (useFirebase && auth) {
+    auth.signOut();
+  } else {
+    currentUser = null;
+    useDemo = false;
+    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('mainApp').style.display = 'none';
+  }
+}
+
+let currentView = 'dashboard';
+
+function showView(view) {
+  currentView = view;
+  document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+async function render() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><p>Cargando...</p></div>';
+  
+  try {
+    switch(currentView) {
+      case 'dashboard': content.innerHTML = await renderDashboard(); break;
+      case 'students': content.innerHTML = await renderStudents(); break;
+      case 'courses': content.innerHTML = await renderCourses(); break;
+      case 'tasks': content.innerHTML = await renderTasks(); break;
+      case 'grades': content.innerHTML = await renderGrades(); break;
+      case 'attendance': content.innerHTML = await renderAttendance(); break;
+      case 'agenda': content.innerHTML = await renderAgenda(); break;
+      case 'planning': content.innerHTML = await renderPlanning(); break;
+      case 'exams': content.innerHTML = await renderExams(); break;
+      case 'library': content.innerHTML = await renderLibrary(); break;
+      case 'reports': content.innerHTML = await renderReports(); break;
+      case 'backups': content.innerHTML = renderBackups(); break;
+      case 'config': content.innerHTML = renderConfig(); break;
+    }
+  } catch (error) {
+    content.innerHTML = `<div class="card"><h2>Error</h2><p>${error.message}</p></div>`;
+  }
+}
+
+async function renderDashboard() {
+  const students = await DB.get('students');
+  const courses = await DB.get('courses');
+  const tasks = await DB.get('tasks');
+  const grades = await DB.get('grades');
+  const pendingTasks = tasks.filter(t => t.status !== 'completed').length;
+  const avgGrade = grades.length ? (grades.reduce((sum, g) => sum + (g.score / g.max * 10), 0) / grades.length).toFixed(1) : '—';
+  
+  return `
+    <div class="stats">
+      <div class="stat"><div class="number">${students.length}</div><div class="label">Estudiantes</div></div>
+      <div class="stat"><div class="number">${courses.length}</div><div class="label">Cursos</div></div>
+      <div class="stat"><div class="number">${pendingTasks}</div><div class="label">Tareas pendientes</div></div>
+      <div class="stat"><div class="number">${avgGrade}</div><div class="label">Promedio general</div></div>
+    </div>
+    <div class="card">
+      <h2>Bienvenido a ProfeFácil</h2>
+      <p>Esta plataforma te ayuda a gestionar estudiantes, cursos, tareas, calificaciones y mucho más.</p>
+      <p><strong>Modo actual:</strong> ${useFirebase ? 'Firebase (sincronizado en la nube)' : 'Local (solo en este navegador)'}</p>
+    </div>
+  `;
+}
+
+async function renderStudents() {
+  const students = await DB.get('students');
+  const courses = await DB.get('courses');
+  return `
+    <div class="card">
+      <h2>Estudiantes</h2>
+      <button class="btn btn-primary" onclick="openStudentModal()">➕ Nuevo estudiante</button>
+      ${students.length === 0 ? '<div class="empty"><div class="empty-icon">👥</div><p>No hay estudiantes registrados</p></div>' : `
+        <table>
+          <thead><tr><th>Nombre</th><th>Email</th><th>Curso</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${students.map(s => `
+              <tr>
+                <td>${s.name}</td>
+                <td>${s.email || '—'}</td>
+                <td>${s.courseId ? courses.find(c => c.id === s.courseId)?.name || '—' : '—'}</td>
+                <td>
+                  <button class="btn btn-secondary" onclick="editStudent('${s.id}')">Editar</button>
+                  <button class="btn btn-danger" onclick="deleteStudent('${s.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openStudentModal(id = null) {
+  const student = id ? (await DB.get('students')).find(s => s.id === id) : {};
+  const courses = await DB.get('courses');
+  document.getElementById('modalTitle').textContent = id ? 'Editar estudiante' : 'Nuevo estudiante';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveStudent(event, '${id || ''}')">
+      <div class="form-group"><label>Nombre *</label><input name="name" value="${student.name || ''}" required></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" value="${student.email || ''}"></div>
+      <div class="form-group"><label>Teléfono</label><input name="phone" value="${student.phone || ''}"></div>
+      <div class="form-group"><label>Curso</label><select name="courseId"><option value="">Sin curso</option>${courses.map(c => `<option value="${c.id}" ${student.courseId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Notas</label><textarea name="notes">${student.notes || ''}</textarea></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveStudent(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (id) { await DB.update('students', id, data); showToast('Estudiante actualizado'); }
+    else { await DB.add('students', data); showToast('Estudiante creado'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editStudent(id) { await openStudentModal(id); }
+async function deleteStudent(id) { 
+  if (confirm('¿Eliminar este estudiante?')) { 
+    await DB.delete('students', id); 
+    showToast('Estudiante eliminado'); 
+    render(); 
+  } 
+}
+
+async function renderCourses() {
+  const courses = await DB.get('courses');
+  return `
+    <div class="card">
+      <h2>Cursos</h2>
+      <button class="btn btn-primary" onclick="openCourseModal()">➕ Nuevo curso</button>
+      ${courses.length === 0 ? '<div class="empty"><div class="empty-icon">📚</div><p>No hay cursos registrados</p></div>' : `
+        <table>
+          <thead><tr><th>Nombre</th><th>Nivel</th><th>Descripción</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${courses.map(c => `
+              <tr>
+                <td>${c.name}</td>
+                <td>${c.level || '—'}</td>
+                <td>${c.description || '—'}</td>
+                <td>
+                  <button class="btn btn-secondary" onclick="editCourse('${c.id}')">Editar</button>
+                  <button class="btn btn-danger" onclick="deleteCourse('${c.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openCourseModal(id = null) {
+  const course = id ? (await DB.get('courses')).find(c => c.id === id) : {};
+  document.getElementById('modalTitle').textContent = id ? 'Editar curso' : 'Nuevo curso';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveCourse(event, '${id || ''}')">
+      <div class="form-group"><label>Nombre *</label><input name="name" value="${course.name || ''}" required></div>
+      <div class="form-group"><label>Nivel</label><input name="level" value="${course.level || ''}"></div>
+      <div class="form-group"><label>Descripción</label><textarea name="description">${course.description || ''}</textarea></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveCourse(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (id) { await DB.update('courses', id, data); showToast('Curso actualizado'); }
+    else { await DB.add('courses', data); showToast('Curso creado'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editCourse(id) { await openCourseModal(id); }
+async function deleteCourse(id) { 
+  if (confirm('¿Eliminar este curso?')) { 
+    await DB.delete('courses', id); 
+    showToast('Curso eliminado'); 
+    render(); 
+  } 
+}
+
+async function renderTasks() {
+  const tasks = await DB.get('tasks');
+  const courses = await DB.get('courses');
+  return `
+    <div class="card">
+      <h2>Tareas</h2>
+      <button class="btn btn-primary" onclick="openTaskModal()">➕ Nueva tarea</button>
+      ${tasks.length === 0 ? '<div class="empty"><div class="empty-icon">📝</div><p>No hay tareas registradas</p></div>' : `
+        <table>
+          <thead><tr><th>Título</th><th>Curso</th><th>Fecha límite</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${tasks.map(t => `
+              <tr>
+                <td>${t.title}</td>
+                <td>${t.courseId ? courses.find(c => c.id === t.courseId)?.name || '—' : '—'}</td>
+                <td>${t.dueDate || '—'}</td>
+                <td><span class="badge badge-${t.status === 'completed' ? 'success' : t.status === 'pending' ? 'warning' : 'info'}">${t.status || 'pending'}</span></td>
+                <td>
+                  <button class="btn btn-secondary" onclick="editTask('${t.id}')">Editar</button>
+                  <button class="btn btn-danger" onclick="deleteTask('${t.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openTaskModal(id = null) {
+  const task = id ? (await DB.get('tasks')).find(t => t.id === id) : {};
+  const courses = await DB.get('courses');
+  document.getElementById('modalTitle').textContent = id ? 'Editar tarea' : 'Nueva tarea';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveTask(event, '${id || ''}')">
+      <div class="form-group"><label>Título *</label><input name="title" value="${task.title || ''}" required></div>
+      <div class="form-group"><label>Descripción</label><textarea name="description">${task.description || ''}</textarea></div>
+      <div class="form-group"><label>Curso</label><select name="courseId"><option value="">Sin curso</option>${courses.map(c => `<option value="${c.id}" ${task.courseId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Fecha límite</label><input type="date" name="dueDate" value="${task.dueDate || ''}"></div>
+      <div class="form-group"><label>Estado</label><select name="status"><option value="pending" ${task.status === 'pending' ? 'selected' : ''}>Pendiente</option><option value="in_progress" ${task.status === 'in_progress' ? 'selected' : ''}>En progreso</option><option value="completed" ${task.status === 'completed' ? 'selected' : ''}>Completada</option></select></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveTask(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (id) { await DB.update('tasks', id, data); showToast('Tarea actualizada'); }
+    else { await DB.add('tasks', data); showToast('Tarea creada'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editTask(id) { await openTaskModal(id); }
+async function deleteTask(id) { 
+  if (confirm('¿Eliminar esta tarea?')) { 
+    await DB.delete('tasks', id); 
+    showToast('Tarea eliminada'); 
+    render(); 
+  } 
+}
+
+async function renderGrades() {
+  const grades = await DB.get('grades');
+  const students = await DB.get('students');
+  return `
+    <div class="card">
+      <h2>Calificaciones</h2>
+      <button class="btn btn-primary" onclick="openGradeModal()"> Nueva calificación</button>
+      ${grades.length === 0 ? '<div class="empty"><div class="empty-icon">📊</div><p>No hay calificaciones registradas</p></div>' : `
+        <table>
+          <thead><tr><th>Estudiante</th><th>Evaluación</th><th>Puntuación</th><th>Máximo</th><th>Porcentaje</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${grades.map(g => {
+              const student = students.find(s => s.id === g.studentId);
+              const percentage = ((g.score / g.max) * 100).toFixed(1);
+              return `
+                <tr>
+                  <td>${student?.name || '—'}</td>
+                  <td>${g.evaluation || '—'}</td>
+                  <td>${g.score}</td>
+                  <td>${g.max}</td>
+                  <td><span class="badge badge-${percentage >= 60 ? 'success' : 'danger'}">${percentage}%</span></td>
+                  <td>
+                    <button class="btn btn-secondary" onclick="editGrade('${g.id}')">Editar</button>
+                    <button class="btn btn-danger" onclick="deleteGrade('${g.id}')">Eliminar</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openGradeModal(id = null) {
+  const grade = id ? (await DB.get('grades')).find(g => g.id === id) : {};
+  const students = await DB.get('students');
+  document.getElementById('modalTitle').textContent = id ? 'Editar calificación' : 'Nueva calificación';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveGrade(event, '${id || ''}')">
+      <div class="form-group"><label>Estudiante *</label><select name="studentId" required><option value="">Seleccionar</option>${students.map(s => `<option value="${s.id}" ${grade.studentId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Evaluación</label><input name="evaluation" value="${grade.evaluation || ''}"></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Puntuación *</label><input type="number" name="score" value="${grade.score || ''}" required></div>
+        <div class="form-group"><label>Máximo *</label><input type="number" name="max" value="${grade.max || '100'}" required></div>
+      </div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveGrade(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  data.score = parseFloat(data.score);
+  data.max = parseFloat(data.max);
+  try {
+    if (id) { await DB.update('grades', id, data); showToast('Calificación actualizada'); }
+    else { await DB.add('grades', data); showToast('Calificación creada'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editGrade(id) { await openGradeModal(id); }
+async function deleteGrade(id) { 
+  if (confirm('¿Eliminar esta calificación?')) { 
+    await DB.delete('grades', id); 
+    showToast('Calificación eliminada'); 
+    render(); 
+  } 
+}
+
+async function renderAttendance() {
+  const attendance = await DB.get('attendance');
+  const students = await DB.get('students');
+  return `
+    <div class="card">
+      <h2>Asistencia</h2>
+      <button class="btn btn-primary" onclick="openAttendanceModal()">➕ Registrar asistencia</button>
+      ${attendance.length === 0 ? '<div class="empty"><div class="empty-icon">✅</div><p>No hay registros de asistencia</p></div>' : `
+        <table>
+          <thead><tr><th>Fecha</th><th>Estudiante</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${attendance.map(a => {
+              const student = students.find(s => s.id === a.studentId);
+              return `
+                <tr>
+                  <td>${a.date}</td>
+                  <td>${student?.name || '—'}</td>
+                  <td><span class="badge badge-${a.status === 'present' ? 'success' : a.status === 'absent' ? 'danger' : 'warning'}">${a.status}</span></td>
+                  <td><button class="btn btn-danger" onclick="deleteAttendance('${a.id}')">Eliminar</button></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openAttendanceModal() {
+  const students = await DB.get('students');
+  document.getElementById('modalTitle').textContent = 'Registrar asistencia';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveAttendance(event)">
+      <div class="form-group"><label>Fecha *</label><input type="date" name="date" value="${new Date().toISOString().split('T')[0]}" required></div>
+      <div class="form-group"><label>Estudiante *</label><select name="studentId" required><option value="">Seleccionar</option>${students.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Estado *</label><select name="status" required><option value="present">Presente</option><option value="absent">Ausente</option><option value="late">Tardanza</option></select></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveAttendance(e) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    await DB.add('attendance', data);
+    showToast('Asistencia registrada');
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function deleteAttendance(id) { 
+  if (confirm('¿Eliminar este registro?')) { 
+    await DB.delete('attendance', id); 
+    showToast('Registro eliminado'); 
+    render(); 
+  } 
+}
+
+async function renderAgenda() {
+  const events = await DB.get('events');
+  return `
+    <div class="card">
+      <h2>Agenda</h2>
+      <button class="btn btn-primary" onclick="openEventModal()">➕ Nuevo evento</button>
+      ${events.length === 0 ? '<div class="empty"><div class="empty-icon">📅</div><p>No hay eventos registrados</p></div>' : `
+        <table>
+          <thead><tr><th>Fecha</th><th>Hora</th><th>Título</th><th>Tipo</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${events.map(e => `
+              <tr>
+                <td>${e.date}</td>
+                <td>${e.time || '—'}</td>
+                <td>${e.title}</td>
+                <td><span class="badge badge-info">${e.type || 'general'}</span></td>
+                <td>
+                  <button class="btn btn-secondary" onclick="editEvent('${e.id}')">Editar</button>
+                  <button class="btn btn-danger" onclick="deleteEvent('${e.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openEventModal(id = null) {
+  const event = id ? (await DB.get('events')).find(e => e.id === id) : {};
+  document.getElementById('modalTitle').textContent = id ? 'Editar evento' : 'Nuevo evento';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveEvent(event, '${id || ''}')">
+      <div class="form-group"><label>Título *</label><input name="title" value="${event.title || ''}" required></div>
+      <div class="grid-2">
+        <div class="form-group"><label>Fecha *</label><input type="date" name="date" value="${event.date || ''}" required></div>
+        <div class="form-group"><label>Hora</label><input type="time" name="time" value="${event.time || ''}"></div>
+      </div>
+      <div class="form-group"><label>Tipo</label><select name="type"><option value="class" ${event.type === 'class' ? 'selected' : ''}>Clase</option><option value="meeting" ${event.type === 'meeting' ? 'selected' : ''}>Reunión</option><option value="exam" ${event.type === 'exam' ? 'selected' : ''}>Examen</option><option value="other" ${event.type === 'other' ? 'selected' : ''}>Otro</option></select></div>
+      <div class="form-group"><label>Descripción</label><textarea name="description">${event.description || ''}</textarea></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveEvent(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (id) { await DB.update('events', id, data); showToast('Evento actualizado'); }
+    else { await DB.add('events', data); showToast('Evento creado'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editEvent(id) { await openEventModal(id); }
+async function deleteEvent(id) { 
+  if (confirm('¿Eliminar este evento?')) { 
+    await DB.delete('events', id); 
+    showToast('Evento eliminado'); 
+    render(); 
+  } 
+}
+
+async function renderPlanning() {
+  const plans = await DB.get('plans');
+  const courses = await DB.get('courses');
+  return `
+    <div class="card">
+      <h2>Planificación de clases</h2>
+      <button class="btn btn-primary" onclick="openPlanModal()">➕ Nuevo plan</button>
+      ${plans.length === 0 ? '<div class="empty"><div class="empty-icon">️</div><p>No hay planificaciones registradas</p></div>' : `
+        <table>
+          <thead><tr><th>Fecha</th><th>Tema</th><th>Curso</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${plans.map(p => `
+              <tr>
+                <td>${p.date}</td>
+                <td>${p.topic}</td>
+                <td>${p.courseId ? courses.find(c => c.id === p.courseId)?.name || '—' : '—'}</td>
+                <td>
+                  <button class="btn btn-secondary" onclick="editPlan('${p.id}')">Editar</button>
+                  <button class="btn btn-danger" onclick="deletePlan('${p.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openPlanModal(id = null) {
+  const plan = id ? (await DB.get('plans')).find(p => p.id === id) : {};
+  const courses = await DB.get('courses');
+  document.getElementById('modalTitle').textContent = id ? 'Editar plan' : 'Nuevo plan';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="savePlan(event, '${id || ''}')">
+      <div class="form-group"><label>Tema *</label><input name="topic" value="${plan.topic || ''}" required></div>
+      <div class="form-group"><label>Curso</label><select name="courseId"><option value="">Sin curso</option>${courses.map(c => `<option value="${c.id}" ${plan.courseId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Fecha</label><input type="date" name="date" value="${plan.date || ''}"></div>
+      <div class="form-group"><label>Objetivos</label><textarea name="objectives">${plan.objectives || ''}</textarea></div>
+      <div class="form-group"><label>Contenidos</label><textarea name="contents">${plan.contents || ''}</textarea></div>
+      <div class="form-group"><label>Actividades</label><textarea name="activities">${plan.activities || ''}</textarea></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function savePlan(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (id) { await DB.update('plans', id, data); showToast('Plan actualizado'); }
+    else { await DB.add('plans', data); showToast('Plan creado'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editPlan(id) { await openPlanModal(id); }
+async function deletePlan(id) { 
+  if (confirm('¿Eliminar este plan?')) { 
+    await DB.delete('plans', id); 
+    showToast('Plan eliminado'); 
+    render(); 
+  } 
+}
+
+async function renderExams() {
+  const exams = await DB.get('exams');
+  const courses = await DB.get('courses');
+  return `
+    <div class="card">
+      <h2>Exámenes y cuestionarios</h2>
+      <button class="btn btn-primary" onclick="openExamModal()">➕ Nuevo examen</button>
+      ${exams.length === 0 ? '<div class="empty"><div class="empty-icon">📋</div><p>No hay exámenes registrados</p></div>' : `
+        <table>
+          <thead><tr><th>Título</th><th>Curso</th><th>Fecha</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${exams.map(e => `
+              <tr>
+                <td>${e.title}</td>
+                <td>${e.courseId ? courses.find(c => c.id === e.courseId)?.name || '—' : '—'}</td>
+                <td>${e.date || '—'}</td>
+                <td>
+                  <button class="btn btn-secondary" onclick="editExam('${e.id}')">Editar</button>
+                  <button class="btn btn-danger" onclick="deleteExam('${e.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openExamModal(id = null) {
+  const exam = id ? (await DB.get('exams')).find(e => e.id === id) : {};
+  const courses = await DB.get('courses');
+  document.getElementById('modalTitle').textContent = id ? 'Editar examen' : 'Nuevo examen';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveExam(event, '${id || ''}')">
+      <div class="form-group"><label>Título *</label><input name="title" value="${exam.title || ''}" required></div>
+      <div class="form-group"><label>Curso</label><select name="courseId"><option value="">Sin curso</option>${courses.map(c => `<option value="${c.id}" ${exam.courseId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Fecha</label><input type="date" name="date" value="${exam.date || ''}"></div>
+      <div class="form-group"><label>Descripción</label><textarea name="description">${exam.description || ''}</textarea></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveExam(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (id) { await DB.update('exams', id, data); showToast('Examen actualizado'); }
+    else { await DB.add('exams', { ...data, questions: [] }); showToast('Examen creado'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editExam(id) { await openExamModal(id); }
+async function deleteExam(id) { 
+  if (confirm('¿Eliminar este examen?')) { 
+    await DB.delete('exams', id); 
+    showToast('Examen eliminado'); 
+    render(); 
+  } 
+}
+
+async function renderLibrary() {
+  const resources = await DB.get('resources');
+  return `
+    <div class="card">
+      <h2>Biblioteca digital</h2>
+      <button class="btn btn-primary" onclick="openResourceModal()">➕ Nuevo recurso</button>
+      ${resources.length === 0 ? '<div class="empty"><div class="empty-icon">📖</div><p>No hay recursos registrados</p></div>' : `
+        <table>
+          <thead><tr><th>Título</th><th>Tipo</th><th>Materia</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${resources.map(r => `
+              <tr>
+                <td>${r.title}</td>
+                <td><span class="badge badge-info">${r.type || '—'}</span></td>
+                <td>${r.subject || '—'}</td>
+                <td>
+                  <button class="btn btn-secondary" onclick="editResource('${r.id}')">Editar</button>
+                  <button class="btn btn-danger" onclick="deleteResource('${r.id}')">Eliminar</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+async function openResourceModal(id = null) {
+  const resource = id ? (await DB.get('resources')).find(r => r.id === id) : {};
+  document.getElementById('modalTitle').textContent = id ? 'Editar recurso' : 'Nuevo recurso';
+  document.getElementById('modalBody').innerHTML = `
+    <form onsubmit="saveResource(event, '${id || ''}')">
+      <div class="form-group"><label>Título *</label><input name="title" value="${resource.title || ''}" required></div>
+      <div class="form-group"><label>Tipo</label><select name="type"><option value="document" ${resource.type === 'document' ? 'selected' : ''}>Documento</option><option value="video" ${resource.type === 'video' ? 'selected' : ''}>Vídeo</option><option value="link" ${resource.type === 'link' ? 'selected' : ''}>Enlace</option><option value="book" ${resource.type === 'book' ? 'selected' : ''}>Libro</option></select></div>
+      <div class="form-group"><label>Materia</label><input name="subject" value="${resource.subject || ''}"></div>
+      <div class="form-group"><label>URL</label><input type="url" name="url" value="${resource.url || ''}"></div>
+      <div class="form-group"><label>Descripción</label><textarea name="description">${resource.description || ''}</textarea></div>
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+async function saveResource(e, id) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (id) { await DB.update('resources', id, data); showToast('Recurso actualizado'); }
+    else { await DB.add('resources', data); showToast('Recurso creado'); }
+    closeModal(); render();
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function editResource(id) { await openResourceModal(id); }
+async function deleteResource(id) { 
+  if (confirm('¿Eliminar este recurso?')) { 
+    await DB.delete('resources', id); 
+    showToast('Recurso eliminado'); 
+    render(); 
+  } 
+}
+
+async function renderReports() {
+  const students = await DB.get('students');
+  const grades = await DB.get('grades');
+  const attendance = await DB.get('attendance');
+  return `
+    <div class="card">
+      <h2>Informes y estadísticas</h2>
+      <div class="stats">
+        <div class="stat"><div class="number">${students.length}</div><div class="label">Total estudiantes</div></div>
+        <div class="stat"><div class="number">${grades.length}</div><div class="label">Calificaciones registradas</div></div>
+        <div class="stat"><div class="number">${attendance.length}</div><div class="label">Registros de asistencia</div></div>
+        <div class="stat"><div class="number">${grades.length ? (grades.reduce((sum, g) => sum + (g.score / g.max * 10), 0) / grades.length).toFixed(1) : '—'}</div><div class="label">Promedio general</div></div>
+      </div>
+      <button class="btn btn-primary" onclick="exportData()"> Exportar datos (JSON)</button>
+    </div>
+  `;
+}
+
+function renderBackups() {
+  return `
+    <div class="card">
+      <h2>Copias de seguridad</h2>
+      <p>Exporta o importa todos tus datos en formato JSON.</p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="exportData()">📥 Exportar datos</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📤 Importar datos</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+      </div>
+    </div>
+  `;
+}
+
+function exportData() {
+  const data = {
+    students: DB.localGet('students'),
+    courses: DB.localGet('courses'),
+    tasks: DB.localGet('tasks'),
+    grades: DB.localGet('grades'),
+    attendance: DB.localGet('attendance'),
+    events: DB.localGet('events'),
+    plans: DB.localGet('plans'),
+    exams: DB.localGet('exams'),
+    resources: DB.localGet('resources'),
+    exportDate: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `profefacil_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Datos exportados');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      const data = JSON.parse(event.target.result);
+      if (confirm('¿Importar estos datos? Se reemplazarán los datos actuales.')) {
+        Object.keys(data).forEach(key => {
+          if (key !== 'exportDate' && Array.isArray(data[key])) {
+            DB.localSet(key, data[key]);
+          }
+        });
+        showToast('Datos importados');
+        render();
+      }
+    } catch (err) {
+      showToast('Error al importar: archivo inválido', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderConfig() {
+  return `
+    <div class="card">
+      <h2>Configuración</h2>
+      <p><strong>Estado de Firebase:</strong> ${useFirebase ? '✅ Conectado' : '❌ No conectado (usando modo local)'}</p>
+      <p><strong>Usuario actual:</strong> ${currentUser?.email || 'No identificado'}</p>
+      <button class="btn btn-danger" onclick="if(confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.')) { Object.keys(localStorage).filter(k => k.startsWith('pf_')).forEach(k => localStorage.removeItem(k)); showToast('Datos eliminados'); render(); }">🗑️ Borrar todos los datos locales</button>
+    </div>
+  `;
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('active'); }
+
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  if (type === 'error') toast.style.background = '#c62828';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function updateStatus(message, type = 'info') {
+  const statusBar = document.getElementById('statusBar');
+  if (statusBar) {
+    statusBar.textContent = message;
+    statusBar.className = 'status-bar ' + type;
+  }
+  const loginStatus = document.getElementById('loginStatus');
+  if (loginStatus) {
+    loginStatus.innerHTML = `<div class="status-bar ${type}">${message}</div>`;
+  }
+}
+
+// Inicializar
+initFirebase();
+</script>
+</body>
+  </html>
